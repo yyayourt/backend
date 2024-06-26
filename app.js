@@ -13,7 +13,7 @@ const userRoutes = require("./routes/users");
 const path = require("path");
 
 mongoose
-    .connect("mongodb+srv://jimbob:<PASSWORD>@cluster0-pme76.mongodb.net/test?retryWrites=true&w=majority", { useNewUrlParser: true, useUnifiedTopology: true })
+    .connect("mongodb+srv://yayourt:ojEngSuGLFf7pAUR@cluster0.mwfxslk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log("Connexion à MongoDB réussie !"))
     .catch(() => console.log("Connexion à MongoDB échouée !"));
 
