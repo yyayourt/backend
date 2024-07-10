@@ -90,3 +90,65 @@ exports.getAllBooks = (req, res, next) => {
             });
         });
 };
+
+const getAllBooks = async () => {
+    try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get("http://localhost:4000/api/books", {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        console.log(response.data);
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+exports.getBestRatingBooks = (req, res, next) => {
+    Book.find()
+        .sort({ averageRating: -1 })
+        .limit(3)
+        .then((books) => {
+            res.status(200).json(books);
+        })
+        .catch((error) => {
+            res.status(400).json({
+                error: error,
+            });
+        });
+};
+
+exports.rateBook = (req, res, next) => {
+    const { userId, rating } = req.body;
+    if (rating < 0 || rating > 5) {
+        return res.status(400).json({ message: "Rating must be between 0 and 5" });
+    }
+
+    Book.findOne({ _id: req.params.id })
+        .then((book) => {
+            if (!book) {
+                return res.status(404).json({ message: "Book not found" });
+            }
+            const existingRating = book.ratings.find((r) => r.userId === userId);
+            if (existingRating) {
+                return res.status(400).json({ message: "User has already rated this book" });
+            }
+
+            const newRating = { userId, rating };
+            book.ratings.push(newRating);
+            const totalRatings = book.ratings.reduce((acc, r) => acc + r.rating, 0);
+            book.averageRating = totalRatings / book.ratings.length;
+
+            book.save()
+                .then((updatedBook) => {
+                    res.status(200).json(updatedBook);
+                })
+                .catch((error) => {
+                    res.status(400).json({ error });
+                });
+        })
+        .catch((error) => {
+            res.status(500).json({ error });
+        });
+};
