@@ -12,8 +12,12 @@ const authRoutes = require("./routes/auth");
 
 const path = require("path");
 
+require('dotenv').config()
+
+const apiUrl = process.env.API_URL
+
 mongoose
-    .connect("mongodb+srv://yayourt:ojEngSuGLFf7pAUR@cluster0.mwfxslk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", { useNewUrlParser: true, useUnifiedTopology: true })
+    .connect(apiUrl, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log("Connexion à MongoDB réussie !"))
     .catch(() => console.log("Connexion à MongoDB échouée !"));
 

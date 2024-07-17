@@ -21,10 +21,11 @@ exports.createBook = (req, res, next) => {
 };
 
 exports.getOneBook = (req, res, next) => {
-    Book.findOne({
-        _id: req.params.id,
-    })
+    Book.findOne({ _id: req.params.id })
         .then((book) => {
+            if (!book) {
+                return res.status(404).json({ error: "Book not found" });
+            }
             res.status(200).json(book);
         })
         .catch((error) => {
@@ -82,27 +83,13 @@ exports.deleteBook = (req, res, next) => {
 exports.getAllBooks = (req, res, next) => {
     Book.find()
         .then((books) => {
-            res.status(200).json(books);
+            res.status(200).json(Array.isArray(books) ? books : []);
         })
         .catch((error) => {
             res.status(400).json({
                 error: error,
             });
         });
-};
-
-const getAllBooks = async () => {
-    try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:4000/api/books", {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-        console.log(response.data);
-    } catch (error) {
-        console.error(error);
-    }
 };
 
 exports.getBestRatingBooks = (req, res, next) => {
@@ -121,34 +108,49 @@ exports.getBestRatingBooks = (req, res, next) => {
 
 exports.rateBook = (req, res, next) => {
     const { userId, rating } = req.body;
+
+    // Ajout de journaux pour diagnostiquer
+    console.log('rateBook request:', req.body);
+
+    // Validation des entrées
+    if (!userId || typeof rating === 'undefined') {
+        console.log('Validation Error: Missing userId or rating');
+        return res.status(400).json({ message: "Missing userId or rating" });
+    }
     if (rating < 0 || rating > 5) {
+        console.log('Validation Error: Rating must be between 0 and 5');
         return res.status(400).json({ message: "Rating must be between 0 and 5" });
     }
 
     Book.findOne({ _id: req.params.id })
         .then((book) => {
             if (!book) {
+                console.log('Book not found');
                 return res.status(404).json({ message: "Book not found" });
             }
             const existingRating = book.ratings.find((r) => r.userId === userId);
             if (existingRating) {
+                console.log('User has already rated this book');
                 return res.status(400).json({ message: "User has already rated this book" });
             }
 
-            const newRating = { userId, rating };
+            const newRating = { userId, grade: rating };
             book.ratings.push(newRating);
-            const totalRatings = book.ratings.reduce((acc, r) => acc + r.rating, 0);
+            const totalRatings = book.ratings.reduce((acc, r) => acc + r.grade, 0);
             book.averageRating = totalRatings / book.ratings.length;
 
             book.save()
                 .then((updatedBook) => {
+                    console.log('Book updated successfully');
                     res.status(200).json(updatedBook);
                 })
                 .catch((error) => {
+                    console.log('Error saving book:', error);
                     res.status(400).json({ error });
                 });
         })
         .catch((error) => {
+            console.log('Error finding book:', error);
             res.status(500).json({ error });
         });
 };
