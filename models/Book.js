@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 
+// Schéma de notation des livres
 const ratingSchema = mongoose.Schema({
     userId: {
         type: String,
@@ -14,6 +15,7 @@ const ratingSchema = mongoose.Schema({
     },
 });
 
+// Schéma de livre
 const bookSchema = mongoose.Schema({
     userId: {
         type: String,
@@ -40,11 +42,11 @@ const bookSchema = mongoose.Schema({
         type: String,
         required: true,
     },
-    ratings: [ratingSchema],
+    ratings: [ratingSchema], // Intègre le schéma de notation
     averageRating: {
         type: Number,
         default: 0,
     },
 });
 
-module.exports = mongoose.model("book", bookSchema);
+module.exports = mongoose.model("book", bookSchema); // Exporte le modèle de livre
