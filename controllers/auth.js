@@ -1,6 +1,10 @@
 const bcrypt = require("bcrypt");
 const User = require("../models/users");
 const jwt = require("jsonwebtoken");
+require('dotenv').config();
+
+const secretToken = process.env.secretToken;
+const expiresIn = process.env.expiresIn;
 
 // Gestion de l'inscription des utilisateurs
 exports.signup = (req, res, next) => {
@@ -33,7 +37,7 @@ exports.login = (req, res, next) => {
                     }
                     res.status(200).json({
                         userId: user._id,
-                        token: jwt.sign({ userId: user._id }, "RANDOM_TOKEN_SECRET", { expiresIn: "24h" }), // Générer un token JWT
+                        token: jwt.sign({ userId: user._id }, secretToken, { expiresIn }), // Générer un token JWT
                     });
                 })
                 .catch((error) => res.status(500).json({ error }));
