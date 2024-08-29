@@ -1,24 +1,28 @@
 const Book = require("../models/Book");
 const fs = require("fs");
+const { optimizeImage } = require("../middleware/multer-config");
 
 // Création d'un nouveau livre
-exports.createBook = (req, res, next) => {
-    const bookObject = JSON.parse(req.body.book);
-    delete bookObject._id;
-    delete bookObject._userId;
-    const book = new Book({
-        ...bookObject,
-        userId: req.auth.userId,
-        imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`,
-    });
+exports.createBook = async (req, res, next) => {
+    try {
+        await optimizeImage(req, res, async () => {
+            const bookObject = JSON.parse(req.body.book);
+            delete bookObject._id;
+            delete bookObject._userId;
 
-    book.save()
-        .then(() => {
-            res.status(201).json({ message: "Objet enregistré !" });
-        })
-        .catch((error) => {
-            res.status(400).json({ error });
+            const book = new Book({
+                ...bookObject,
+                userId: req.auth.userId,
+                imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`,
+            });
+
+            book.save()
+                .then(() => res.status(201).json({ message: "Objet enregistré !" }))
+                .catch((error) => res.status(400).json({ error }));
         });
+    } catch (error) {
+        res.status(500).json({ error: "Erreur lors de la création du livre." });
+    }
 };
 
 // Récupération d'un livre par ID
@@ -36,28 +40,33 @@ exports.getOneBook = (req, res, next) => {
 };
 
 // Modification d'un livre
-exports.modifyBook = (req, res, next) => {
-    const bookObject = req.file
-        ? {
-              ...JSON.parse(req.body.book),
-              imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`,
-          }
-        : { ...req.body };
+exports.modifyBook = async (req, res, next) => {
+    try {
+        await optimizeImage(req, res, async () => {
+            const bookObject = req.file
+                ? {
+                      ...JSON.parse(req.body.book),
+                      imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`,
+                  }
+                : { ...req.body };
 
-    delete bookObject._userId;
-    Book.findOne({ _id: req.params.id })
-        .then((book) => {
-            if (book.userId != req.auth.userId) {
-                res.status(401).json({ message: "Non autorisé" });
-            } else {
-                Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
-                    .then(() => res.status(200).json({ message: "Objet modifié!" }))
-                    .catch((error) => res.status(401).json({ error }));
-            }
-        })
-        .catch((error) => {
-            res.status(400).json({ error });
+            delete bookObject._userId;
+
+            Book.findOne({ _id: req.params.id })
+                .then((book) => {
+                    if (book.userId != req.auth.userId) {
+                        res.status(401).json({ message: "Non autorisé" });
+                    } else {
+                        Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
+                            .then(() => res.status(200).json({ message: "Objet modifié!" }))
+                            .catch((error) => res.status(401).json({ error }));
+                    }
+                })
+                .catch((error) => res.status(400).json({ error }));
         });
+    } catch (error) {
+        res.status(500).json({ error: "Erreur lors de la modification du livre." });
+    }
 };
 
 // Suppression d'un livre
@@ -111,7 +120,7 @@ exports.rateBook = (req, res, next) => {
     const { userId, rating } = req.body;
 
     // Validation des entrées
-    if (!userId || typeof rating === 'undefined') {
+    if (!userId || typeof rating === "undefined") {
         return res.status(400).json({ message: "UserId ou note manquant" });
     }
     if (rating < 0 || rating > 5) {
